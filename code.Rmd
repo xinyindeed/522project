@@ -1,0 +1,150 @@
+---
+title: "code"
+output: html_document
+---
+
+# Load packages + data
+```{r}
+library(tidyverse)
+library(psych)
+library(here)
+library(lm.beta)
+
+d <- read.csv(here("simulated_data.csv"))
+```
+
+# Data Cleaning
+```{r}
+#First step is to format the csv & delete entries that skipped to the survey
+
+d1 <- d[-(1:2),]
+d1 <- d1 %>% 
+  filter(Q1 == 1,
+         Age != 1,
+         US.resident == 1)
+
+#!!threshold of completion minutes 
+#!!NA value strategy
+
+#Reverse code
+d2 <- d1 %>% 
+  mutate_at(c("Attitude...self_3", "Attitude...asylum_3","Attitude...self_5", "Attitude...asylum_5"),
+            recode, "1" = 3, "2" = 2, "3" = 1)
+
+d2 <- d2 %>% 
+  mutate_at(c("BaseEmpathic.concern_2", "BaseEmpathic.concern_5", "BaseEmpathic.concern_6"),
+            recode, "1" = 5, "2" = 4, "3" = 3, "4" = 2, "5" = 1)
+         
+#Recode to create new variables
+d2[,17:71] <- d2[,17:71] %>% mutate_if(is.character, as.numeric)
+sapply(d2,class)
+# Basic Empathic Concern (BEconcern)
+d3 <- d2
+which(colnames(d3) == "BaseEmpathic.concern_1")
+alpha(d3[, 27:33])
+d3 <- d3%>% 
+  mutate(
+  BEconcern = rowMeans(select(., c("BaseEmpathic.concern_1", "BaseEmpathic.concern_2","BaseEmpathic.concern_3",
+                                 "BaseEmpathic.concern_5", "BaseEmpathic.concern_6", "BaseEmpathic.concern_7"))))
+# American Identity
+which(colnames(d3) == "Identif..as.American_1")
+alpha(d3[, 34:37])
+d3 <- d3%>% 
+  mutate(
+  identity = rowMeans(select(., c("Identif..as.American_1", "Identif..as.American_2","Identif..as.American_3",
+                                 "Identif..as.American_4"))))
+
+#Petition Willingess 
+which(colnames(d3) == "activism...petition_1")
+alpha(d3[, 38:41])
+d3 <- d3%>% 
+  mutate(
+  petition = rowMeans(select(., c("activism...petition_1", "activism...petition_2","activism...petition_3",
+                                 "activism...petition_4"))))
+#!!Activism Donation
+which(colnames(d3) == "activism...donation_1")
+alpha(d3[, 42:45])
+d3 <- d3%>% 
+  mutate(
+  donation = rowMeans(select(., c("activism...donation_1", "activism...donation_2","activism...donation_3",
+                                 "activism...donation_4"))))
+
+#Empathy check: emotional response = ER
+which(colnames(d3) == "Emp..Emot..Resp._1")
+alpha(d3[, 47:52])
+d3 <- d3%>% 
+  mutate(
+  attitude_asylum = rowMeans(select(., c("Emp..Emot..Resp._1", "Emp..Emot..Resp._2","Emp..Emot..Resp._3",
+                                 "Emp..Emot..Resp._4", "Emp..Emot..Resp._5", "Emp..Emot..Resp._6"))))
+
+#Attitude/Intergroup_Bias Self = attitude_self
+which(colnames(d3) == "Attitude...self_1")
+alpha(d3[, 54:59])
+d3 <- d3%>% 
+  mutate(
+  attitude_self = rowMeans(select(., c("Attitude...self_1", "Attitude...self_2","Attitude...self_3",
+                                 "Attitude...self_4", "Attitude...self_5", "Attitude...self_6"))))
+#Basic Empathic Concern_asylum = EC_asylum
+which(colnames(d3) == "Attitude...asylum_1")
+alpha(d3[, 60:65])
+d3 <- d3%>% 
+  mutate(
+  attitude_asylum = rowMeans(select(., c("Attitude...asylum_1", "Attitude...asylum_2","Attitude...asylum_3",
+                                 "Attitude...asylum_4", "Attitude...asylum_5", "Attitude...asylum_6"))))
+
+
+#Demographics - Control Variable
+#Keep original: Age, gender, ethnicity, education, employment, region
+#Dummy code: 
+# political
+d3 <- d3 %>% 
+  mutate(
+    democrat = if_else(Political == 1, 1, 0),
+    republican = if_else(Political == 2, 1, 0),
+    independent = if_else(Political == 3, 1, 0),
+    somethingelse = if_else(Political == 5,1,0),
+    dontknow = if_else(Political == 10,1,0)
+  )
+#previous activism engagement
+d3 <- d3 %>% 
+  mutate(
+    donate_year_yes = if_else(previous.activism_1 == 1, 1, 0),
+    donate_year_no = if_else(previous.activism_1 == 2, 1, 0),
+    sign_year_yes = if_else(previous.activism_2 == 1, 1, 0),
+    sign_year_no = if_else(previous.activism_2 == 2, 1, 0),
+    donate_life_yes = if_else(previous.activism_3 == 1, 1, 0),
+    donate_life_no = if_else(previous.activism_3 == 2, 1, 0),
+    sign_life_yes = if_else(previous.activism_4 == 1, 1, 0),
+    sign_life_no = if_else(previous.activism_4 == 2, 1, 0)
+  )
+
+
+```
+# T-test
+1. Each Condition * Control
+2. Recat + Empathy * Empathy
+3. Recat + Empathy * Recat
+```{r}
+```
+# ANOVA: Compare Group Results
+1. Post test dependent variables
+2. Past activism behavior
+3. Manipulation check scores
+4. Baseline empathic concern
+```{r}
+```
+# Regression: 
+1. check VIF for multicollinearity
+2. models
+3. plot(modelname) for Residuals vs. fitted values/Q-Q plots/Scale Location plots/Cook’s distance plots
+
+This tutorial code seeme helpful
+(https://datascienceplus.com/how-to-do-regression-analysis-for-multiple-independent-or-dependent-variables/)
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
