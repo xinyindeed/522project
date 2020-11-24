@@ -15,7 +15,7 @@ d <- read.csv(here("simulated_data.csv"))
 
 # Data Cleaning
 ```{r}
-#First step is to format the csv & delete entries that skipped to the survey
+#First step is to format the csv & delete entries that skipped to the end of the survey
 
 d1 <- d[-(1:2),]
 d1 <- d1 %>% 
@@ -132,6 +132,57 @@ d3 <- d3 %>%
 3. Manipulation check scores
 4. Baseline empathic concern
 ```{r}
+#Compare Group Results: regressions vs ANOVAs - using petition as example DV
+Control_and_ID <- d3 %>%
+  filter(Condition == "1" | Condition == "2") %>%
+  mutate_at(c("Condition"),
+            recode, "1" = 0, "2" = 1)
+
+Control_and_empathy <- d3 %>%
+  filter(Condition == "1" | Condition == "3") %>%
+    mutate_at(c("Condition"),
+            recode, "1" = 0, "3" = 1)
+
+Control_and_Emp_ID <- d3 %>%
+  filter(Condition == "1" | Condition == "4") %>%
+  mutate_at(c("Condition"),
+          recode, "1" = 0, "4" = 1)
+
+EmpONLY_vs_EmpANDID <- d3 %>%
+  filter(Condition == "3" | Condition == "4") %>%
+  mutate_at(c("Condition"),
+          recode, "3" = 0, "4" = 1)
+
+IdONLY_vs_EmpANDID <- d3 %>%
+  filter(Condition == "3" | Condition == "4") %>%
+  mutate_at(c("Condition"),
+          recode, "2" = 0, "4" = 1)
+
+#control versus each condition (ID only, emp only, ID+empahty)
+reg_petition_1 <- lm(petition~Control_and_ID$Condition, data=Control_and_ID)
+
+summary(reg_petition_1)
+
+reg_petition_2 <- lm(petition~Control_and_empathy$Condition, data=Control_and_empathy)
+
+summary(reg_petition_2)
+
+reg_petition_3 <- lm(petition~Control_and_Emp_ID$Condition, data=Control_and_Emp_ID)
+
+summary(reg_petition_3)
+
+#ID+empathy versus ID only and Emp only
+reg_petition_4 <-lm(petition~EmpONLY_vs_EmpANDID$Condition, data=EmpONLY_vs_EmpANDID)
+
+summary(reg_petition_4)
+
+reg_petition_5 <-lm(petition~IdONLY_vs_EmpANDID$Condition, data=IdONLY_vs_EmpANDID)
+
+summary(reg_petition_5)
+
+##aov(dv~X*Y,data=df)
+##m1 <- lm(dv~X+Y,data=df)
+##m2 <- lm(dv~X*Y,data=df
 ```
 # Regression: 
 1. check VIF for multicollinearity
