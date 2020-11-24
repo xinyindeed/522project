@@ -255,6 +255,16 @@ This tutorial code seeme helpful
 # Code for GGplots!! 
 ```{r}
 ```
+#one example using boxplots
 
+boxplot(d3$petition ~ d3$Condition,
+        data=d3,
+        ylab="activism willingness - petition", 
+        xlab = "Condition")
+
+boxplot(d3$donation ~ d3$Condition,
+        data=d3,
+        ylab="activism willingness - donation", 
+        xlab = "Condition")
 ```{r}
 ```
