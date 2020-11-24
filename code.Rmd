@@ -125,6 +125,65 @@ d3 <- d3 %>%
 2. Recat + Empathy * Empathy
 3. Recat + Empathy * Recat
 ```{r}
+#FYI, I'm not sure this is the correct/best way to run these t-tests, but I attempted the code!! 
+
+#petition
+petition_control <- d3 %>%
+  filter(Condition == "1") %>%
+  pull(petition)
+
+petition_ID_only <- d3 %>%
+  filter(Condition == "2") %>%
+  pull(petition)
+
+petition_emp_only <- d3 %>%
+  filter(Condition == "3") %>%
+  pull(petition)
+
+petition_ID_and_Em <- d3 %>%
+  filter(Condition == "4") %>%
+  pull(petition)
+
+#petition by control
+t.test(petition_control, petition_ID_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+
+t.test(petition_control, petition_emp_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+
+t.test(petition_control, petition_ID_and_Em, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+
+#petition by emp+ID
+t.test(petition_ID_only, petition_ID_and_Em, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+
+t.test(petition_emp_only, petition_ID_and_Em, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+
+#donation
+donat_control <- d3 %>%
+  filter(Condition == "1") %>%
+  pull(donation)
+
+donat_ID_only <- d3 %>%
+  filter(Condition == "2") %>%
+  pull(donation)
+
+donat_emp_only <- d3 %>%
+  filter(Condition == "3") %>%
+  pull(donation)
+
+donat_ID_and_Em <- d3 %>%
+  filter(Condition == "4") %>%
+  pull(donation)
+
+#donation by control
+t.test(donat_control, donat_ID_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+
+t.test(donat_control, donat_emp_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+
+t.test(donat_control, donat_ID_and_Em, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+
+#donation by emp+ID
+t.test(donat_ID_only, donat_ID_and_Em, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+
+t.test(donat_emp_only, donat_ID_and_Em, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
 ```
 # ANOVA: Compare Group Results
 1. Post test dependent variables
