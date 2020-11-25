@@ -201,7 +201,7 @@ t.test(donat_ID_and_Em, donat_emp_only, alternative = c("greater"), mu=0, paired
 4. Baseline empathic concern
 ```{r}
 #Option 1
-#Compare Group Results: regressions vs ANOVAs - using petition as example DV
+#Compare Group Results: Main effects: regressions - using petition and donation as DV
 Control_and_ID <- d3 %>%
   filter(Condition == "1" | Condition == "2") %>%
   mutate_at(c("Condition"),
@@ -249,7 +249,7 @@ reg_petition_5 <-lm(petition~IdONLY_vs_EmpANDID$Condition, data=IdONLY_vs_EmpAND
 
 summary(reg_petition_5)
 
-#Option2
+#Option2: Main effects - using regression
 #rercode three columns each condition as the reference group
 
 d3 <- d3 %>% 
