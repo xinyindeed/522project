@@ -191,6 +191,7 @@ t.test(donat_emp_only, donat_ID_and_Em, alternative = c("greater"), mu=0, paired
 3. Manipulation check scores
 4. Baseline empathic concern
 ```{r}
+#Option 1
 #Compare Group Results: regressions vs ANOVAs - using petition as example DV
 Control_and_ID <- d3 %>%
   filter(Condition == "1" | Condition == "2") %>%
@@ -239,9 +240,25 @@ reg_petition_5 <-lm(petition~IdONLY_vs_EmpANDID$Condition, data=IdONLY_vs_EmpAND
 
 summary(reg_petition_5)
 
+#Option2
+#rercode three columns each condition as the reference group
+d3 <- d3 %>% 
+  mutate(
+    cond1 = factor(Condition, c(1,2,3,4), labels=c('con', 'sup','em', 'supem')))
+    
+#petition (control as reference group)
+lm1a <- lm(petition ~ cond1, data = d3)
+
+summary(lm1a)
+#donation (control as rerference group)
+
+lm1b <- lm(donation ~ cond1, data = d3)
+summary(lm1b)
+
 ##aov(dv~X*Y,data=df)
 ##m1 <- lm(dv~X+Y,data=df)
 ##m2 <- lm(dv~X*Y,data=df
+
 ```
 # Regression: 
 1. check VIF for multicollinearity
