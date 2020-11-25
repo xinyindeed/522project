@@ -9,6 +9,9 @@ library(tidyverse)
 library(psych)
 library(here)
 library(lm.beta)
+library(car)
+library(caret)
+recode <- dplyr::recode
 
 d <- read.csv(here("simulated_data.csv"))
 ```
@@ -16,83 +19,94 @@ d <- read.csv(here("simulated_data.csv"))
 # Data Cleaning
 ```{r}
 #First step is to format the csv & delete entries that skipped to the end of the survey
-
 d1 <- d[-(1:2),]
 d1 <- d1 %>% 
   filter(Q1 == 1,
          Age != 1,
          US.resident == 1)
-
-#!!threshold of completion minutes 
-#!!NA value strategy
-
 #Reverse code
 d2 <- d1 %>% 
   mutate_at(c("Attitude...self_3", "Attitude...asylum_3","Attitude...self_5", "Attitude...asylum_5"),
             recode, "1" = 3, "2" = 2, "3" = 1)
-
 d2 <- d2 %>% 
   mutate_at(c("BaseEmpathic.concern_2", "BaseEmpathic.concern_5", "BaseEmpathic.concern_6"),
             recode, "1" = 5, "2" = 4, "3" = 3, "4" = 2, "5" = 1)
          
-#Recode to create new variables
-d2[,17:71] <- d2[,17:71] %>% mutate_if(is.character, as.numeric)
+#Force character values into numbers
+d2[,c(3:6, 11:15, 17:71)] <- d2[,c(3:6, 11:15, 17:71)] %>% 
+  mutate_if(is.character, as.numeric) #all questions should be changed to numeric except dates and gender text box 
 sapply(d2,class)
+#Calculate response time cut-off threshold
+#rename and transform response time variable
+d2 <- d2 %>%
+  rename(stim_time = Duration..in.seconds.)
+  #mutate(log_time = log(stim_time)) #log transformations of fake data made odd data
+#get mean, sd, and 2 sd outlier threshold for response times
+time_m <- mean(d2$stim_time) #with real data, d2$log_time
+time_sd <- sd(d2$stim_time) #with real data, d2$log_time
+out.u <- time_m + 2*time_sd 
+out.l <- time_m - 2*time_sd
+#remove outlier response times
+d2_outlier <- d2 %>%
+  filter(-stim_time<out.u) %>%
+  filter(-stim_time>out.l)
 # Basic Empathic Concern (BEconcern)
-d3 <- d2
+d3 <- d2_outlier
 which(colnames(d3) == "BaseEmpathic.concern_1")
 alpha(d3[, 27:33])
 d3 <- d3%>% 
   mutate(
   BEconcern = rowMeans(select(., c("BaseEmpathic.concern_1", "BaseEmpathic.concern_2","BaseEmpathic.concern_3",
                                  "BaseEmpathic.concern_5", "BaseEmpathic.concern_6", "BaseEmpathic.concern_7"))))
-# American Identity
+# American Identity (identity)
 which(colnames(d3) == "Identif..as.American_1")
 alpha(d3[, 34:37])
 d3 <- d3%>% 
   mutate(
   identity = rowMeans(select(., c("Identif..as.American_1", "Identif..as.American_2","Identif..as.American_3",
                                  "Identif..as.American_4"))))
-
-#Petition Willingess 
+#Petition Willingess (petition)
 which(colnames(d3) == "activism...petition_1")
 alpha(d3[, 38:41])
 d3 <- d3%>% 
   mutate(
   petition = rowMeans(select(., c("activism...petition_1", "activism...petition_2","activism...petition_3",
                                  "activism...petition_4"))))
-#!!Activism Donation
+# Activism Donation (donation)
 which(colnames(d3) == "activism...donation_1")
 alpha(d3[, 42:45])
 d3 <- d3%>% 
   mutate(
   donation = rowMeans(select(., c("activism...donation_1", "activism...donation_2","activism...donation_3",
                                  "activism...donation_4"))))
-
-#Empathy check: emotional response = ER
+# Donation Value  (donation_value)
+d3 <- d3 %>%
+  rename(donation_value = donations.amout) %>%
+  mutate(donation_value = log(donation_value)) # adjust for wide range of possible donation values
+#Empathy check: emotional response questionnaire (ERQ)
 which(colnames(d3) == "Emp..Emot..Resp._1")
 alpha(d3[, 47:52])
 d3 <- d3%>% 
   mutate(
-  attitude_asylum = rowMeans(select(., c("Emp..Emot..Resp._1", "Emp..Emot..Resp._2","Emp..Emot..Resp._3",
+  ERQ = rowMeans(select(., c("Emp..Emot..Resp._1", "Emp..Emot..Resp._2","Emp..Emot..Resp._3",
                                  "Emp..Emot..Resp._4", "Emp..Emot..Resp._5", "Emp..Emot..Resp._6"))))
-
-#Attitude/Intergroup_Bias Self = attitude_self
+#Recat check: Attitude/Intergroup_Bias Self (attitude_self)
 which(colnames(d3) == "Attitude...self_1")
 alpha(d3[, 54:59])
 d3 <- d3%>% 
   mutate(
   attitude_self = rowMeans(select(., c("Attitude...self_1", "Attitude...self_2","Attitude...self_3",
                                  "Attitude...self_4", "Attitude...self_5", "Attitude...self_6"))))
-#Basic Empathic Concern_asylum = EC_asylum
+#Empathy check: Attitude Asylum (attitude_asylum)
 which(colnames(d3) == "Attitude...asylum_1")
 alpha(d3[, 60:65])
 d3 <- d3%>% 
   mutate(
   attitude_asylum = rowMeans(select(., c("Attitude...asylum_1", "Attitude...asylum_2","Attitude...asylum_3",
                                  "Attitude...asylum_4", "Attitude...asylum_5", "Attitude...asylum_6"))))
-
-
+#Recat check: Intergroup bias (bias)
+d3 <- d3 %>%
+  mutate(bias = attitude_asylum - attitude_self) # negative values indicates bias to self; positive indicates bias to asylum
 #Demographics - Control Variable
 #Keep original: Age, gender, ethnicity, education, employment, region
 #Dummy code: 
@@ -117,8 +131,9 @@ d3 <- d3 %>%
     sign_life_yes = if_else(previous.activism_4 == 1, 1, 0),
     sign_life_no = if_else(previous.activism_4 == 2, 1, 0)
   )
-
-
+# OPTIONAL VARIABLE DATAFRAME
+d4 <- d3 %>%
+  select(Condition, Q_TotalDuration, Age, US.resident, Region, Gender, Education, Employment, stim_time, donation_value, Recat..IOS.circles, c(72:92))
 ```
 # T-test
 1. Each Condition * Control
@@ -144,46 +159,40 @@ petition_ID_and_Em <- d3 %>%
   filter(Condition == "4") %>%
   pull(petition)
 
-#petition by control
-t.test(petition_control, petition_ID_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
 
-t.test(petition_control, petition_emp_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
-
-t.test(petition_control, petition_ID_and_Em, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
-
-#petition by emp+ID
-t.test(petition_ID_only, petition_ID_and_Em, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
-
-t.test(petition_emp_only, petition_ID_and_Em, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
-
+#petition by control (H1 and H2)
+t.test(petition_ID_only, petition_control, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+t.test(petition_emp_only, petition_control, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+t.test(petition_ID_and_Em, petition_control, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+#petition by emp or ID (Not official H, just testing whether one of emp or ID only is significantly larger than the other))
+t.test(petition_ID_only, petition_emp_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal=FALSE, conf.level = 0.95)
+t.test(petition_emp_only, petition_ID_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal=FALSE, conf.level = 0.95)
+#petition by emp+ID (H3)
+t.test(petition_ID_and_Em, petition_ID_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+t.test(petition_ID_and_Em, petition_emp_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
 #donation
 donat_control <- d3 %>%
   filter(Condition == "1") %>%
   pull(donation)
-
 donat_ID_only <- d3 %>%
   filter(Condition == "2") %>%
   pull(donation)
-
 donat_emp_only <- d3 %>%
   filter(Condition == "3") %>%
   pull(donation)
-
 donat_ID_and_Em <- d3 %>%
   filter(Condition == "4") %>%
   pull(donation)
-
-#donation by control
-t.test(donat_control, donat_ID_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
-
-t.test(donat_control, donat_emp_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
-
-t.test(donat_control, donat_ID_and_Em, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
-
-#donation by emp+ID
-t.test(donat_ID_only, donat_ID_and_Em, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
-
-t.test(donat_emp_only, donat_ID_and_Em, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+#donation by control (H1 to H2)
+t.test(donat_ID_only, donat_control, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+t.test(donat_emp_only, donat_control, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+t.test(donat_ID_and_Em, donat_control, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+#donation by emp or ID (Not official H, just testing whether one of emp or ID only is significantly larger than the other)
+t.test(donat_ID_only, donat_emp_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+t.test(donat_emp_only, donat_ID_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+#donation by emp+ID (H3)
+t.test(donat_ID_and_Em, donat_ID_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
+t.test(donat_ID_and_Em, donat_emp_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
 ```
 # ANOVA: Compare Group Results
 1. Post test dependent variables
@@ -277,14 +286,223 @@ summary(lm3)
 ##m2 <- lm(dv~X*Y,data=df
 
 ```
-# Regression: 
+# Regressions: 
 1. check VIF for multicollinearity
 2. models
-3. plot(modelname) for Residuals vs. fitted values/Q-Q plots/Scale Location plots/Cook’s distance plots
 
-This tutorial code seeme helpful
-(https://datascienceplus.com/how-to-do-regression-analysis-for-multiple-independent-or-dependent-variables/)
+
 ```{r}
+# Regressions
+# isolate conditions into dfs
+d3_1 <- d3 %>%
+  filter(Condition=="1")
+d3_2 <- d3 %>%
+  filter(Condition=="2")
+d3_3 <- d3 %>%
+  filter(Condition=="3")
+d3_4 <- d3 %>%
+  filter(Condition=="4")
+# model name format: regression // condition // predicting 'p'etition or 'd'onation // predictors
+# independent variables: ERQ, attitude_asylum, Recat..IOS.circles, bias
+# dependent variables: petition, donation
+# control variables: BEconcern democrat republican independent somethingelse dontknow donate_year_yes donate_year_no donate_life_yes donate_life_no sign_year_yes sign_year_no sign_life_yes sign_life_no
+  # removed independent, somethingelse, dontknow, and all "..._no" dummy variables do to aliased coefficients
+# condition 1: control
+# model: dv~iv
+reg_1_p_emp <- lm(petition ~ ERQ + attitude_asylum, data = d3_1)
+vif(reg_1_p_emp) #remove predictors with large VIFs
+summary(reg_1_p_emp)
+reg_1_p_id <- lm(petition ~ Recat..IOS.circles + bias, data = d3_1)
+vif(reg_1_p_id) 
+summary(reg_1_p_id)
+reg_1_p <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_1)
+vif(reg_1_p)
+summary(reg_1_p)
+reg_1_d_emp <- lm(donation ~ ERQ + attitude_asylum, data = d3_1)
+vif(reg_1_d_emp)
+summary(reg_1_d_emp)
+reg_1_d_id <- lm(donation ~ Recat..IOS.circles + bias, data = d3_1)
+vif(reg_1_d_id)
+summary(reg_1_d_id)
+reg_1_d <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_1)
+vif(reg_1_d)
+summary(reg_1_d)
+#model: dv~iv+cv
+reg_1_p_emp_c <- lm(petition ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_1) 
+vif(reg_1_p_emp_c)
+summary(reg_1_p_emp_c)
+reg_1_p_id_c <- lm(petition ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_1)
+vif(reg_1_p_id_c)
+summary(reg_1_p_id_c)
+reg_1_p_c <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_1)
+vif(reg_1_p_c)
+summary(reg_1_p_c)
+reg_1_d_emp_c<- lm(donation ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_1)
+vif(reg_1_d_emp_c)
+summary(reg_1_d_emp_c)
+reg_1_d_id_c <- lm(donation ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_1)
+vif(reg_1_d_id_c)
+summary(reg_1_d_id_c)
+reg_1_d_c <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_1)
+vif(reg_1_d_c)
+summary(reg_1_d_c)
+# condition 2: ID only
+# model: dv~iv
+reg_2_p_emp <- lm(petition ~ ERQ + attitude_asylum , data = d3_2)
+vif(reg_2_p_emp)
+summary(reg_2_p_emp)
+reg_2_p_id <- lm(petition ~ Recat..IOS.circles + bias, data = d3_2)
+vif(reg_2_p_id)
+summary(reg_2_p_id)
+reg_2_p <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_2)
+vif(reg_2_p)
+summary(reg_2_p)
+reg_2_d_emp <- lm(donation ~ ERQ + attitude_asylum, data = d3_2)
+vif(reg_2_d_emp)
+summary(reg_2_d_emp)
+reg_2_d_id <- lm(donation ~ Recat..IOS.circles + bias, data = d3_2)
+vif(reg_2_d_id)
+summary(reg_2_d_id)
+reg_2_d <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_2)
+vif(reg_2_d)
+summary(reg_2_d)
+# model: dv~iv+cv
+reg_2_p_emp_c <- lm(petition ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_2)
+vif(reg_2_p_emp_c)
+summary(reg_2_p_emp_c)
+reg_2_p_id_c <- lm(petition ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_2)
+vif(reg_2_p_id_c)
+summary(reg_2_p_id_c)
+reg_2_p_c <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_2)
+vif(reg_2_p_c)
+summary(reg_2_p_c)
+reg_2_d_emp_c <- lm(donation ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_2)
+vif(reg_2_d_emp_c)
+summary(reg_2_d_emp_c)
+reg_2_d_id_c <- lm(donation ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_2)
+vif(reg_2_d_id_c)
+summary(reg_2_d_id_c)
+reg_2_d_c <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_2)
+vif(reg_2_d_c)
+summary(reg_2_d_c)
+# condition 3: empathy only
+reg_3_p_emp <- lm(petition ~ ERQ + attitude_asylum, data = d3_3)
+vif(reg_3_p_emp)
+summary(reg_3_p_emp)
+reg_3_p_id <- lm(petition ~ Recat..IOS.circles + bias, data = d3_3)
+vif(reg_3_p_id)
+summary(reg_3_p_id)
+reg_3_p <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_3)
+vif(reg_3_p)
+summary(reg_3_p)
+reg_3_d_emp <- lm(donation ~ ERQ + attitude_asylum, data = d3_3)
+vif(reg_3_d_emp)
+summary(reg_3_d_emp)
+reg_3_d_id <- lm(donation ~ Recat..IOS.circles + bias, data = d3_3)
+vif(reg_3_d_id)
+summary(reg_3_d_id)
+reg_3_d <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_3)
+vif(reg_3_d)
+summary(reg_3_d)
+# model: dv~iv+cv
+reg_3_p_emp_c <- lm(petition ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_3)
+vif(reg_3_p_emp_c)
+summary(reg_3_p_emp_c)
+reg_3_p_id_c <- lm(petition ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_3)
+vif(reg_3_p_id_c)
+summary(reg_3_p_id_c)
+reg_3_p_c <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_3)
+vif(reg_3_p_c)
+summary(reg_3_p_c)
+reg_3_d_emp_c <- lm(donation ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_3)
+vif(reg_3_d_emp_c)
+summary(reg_3_d_emp_c)
+reg_3_d_id_c <- lm(donation ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_3)
+vif(reg_3_d_id_c)
+summary(reg_3_d_id_c)
+reg_3_d_c <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_3)
+vif(reg_3_d_c)
+summary(reg_3_d_c)
+# condition 4: empathy + recat
+reg_4_p_emp <- lm(petition ~ ERQ + attitude_asylum, data = d3_4)
+vif(reg_4_p_emp)
+summary(reg_4_p_emp)
+reg_4_p_id <- lm(petition ~ Recat..IOS.circles + bias, data = d3_4)
+vif(reg_4_p_id)
+summary(reg_4_p_id)
+reg_4_p <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_4)
+vif(reg_4_p)
+summary(reg_4_p)
+reg_4_d_emp <- lm(donation ~ ERQ + attitude_asylum, data = d3_4)
+vif(reg_4_d_emp)
+summary(reg_4_d_emp)
+reg_4_d_id <- lm(donation ~ Recat..IOS.circles + bias, data = d3_4)
+vif(reg_4_d_id)
+summary(reg_4_d_id)
+reg_4_d <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_4)
+vif(reg_4_d)
+summary(reg_4_d)
+# model: dv~iv+cv
+reg_4_p_emp_c <- lm(petition ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_4)
+vif(reg_4_p_emp_c)
+summary(reg_4_p_emp_c)
+reg_4_p_id_c <- lm(petition ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_4)
+vif(reg_4_p_id_c)
+summary(reg_4_p_id_c)
+reg_4_p_c <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_4)
+vif(reg_4_p_c)
+summary(reg_4_p_c)
+reg_4_d_emp_c <- lm(donation ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_4)
+vif(reg_4_d_emp_c)
+summary(reg_4_d_emp_c)
+reg_4_d_id_c <- lm(donation ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_4)
+vif(reg_4_d_id_c)
+summary(reg_4_d_id_c)
+reg_4_d_c <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_4)
+vif(reg_4_d_c)
+summary(reg_4_d_c)
+```
+
+# Regression Plots
+1. plot(modelname) for Residuals vs. fitted values/Q-Q plots/Scale Location plots/Cook’s distance plots
+```{r}
+# condition 1
+plot(reg_1_p_emp)
+plot(reg_1_p_id)
+plot(reg_1_p)
+plot(reg_1_d_emp)
+plot(reg_1_d_id)
+plot(reg_1_d)
+```
+
+```{r}
+# condition 2
+plot(reg_2_p_emp)
+plot(reg_2_p_id)
+plot(reg_2_p)
+plot(reg_2_d_emp)
+plot(reg_2_d_id)
+plot(reg_2_d)
+```
+
+```{r}
+# condition 3
+plot(reg_3_p_emp)
+plot(reg_3_p_id)
+plot(reg_3_p)
+plot(reg_3_d_emp)
+plot(reg_3_d_id)
+plot(reg_3_d)
+```
+
+```{r}
+# condition 4
+plot(reg_4_p_emp)
+plot(reg_4_p_id)
+plot(reg_4_p)
+plot(reg_4_d_emp)
+plot(reg_4_d_id)
+plot(reg_4_d)
 ```
 # Code for GGplots!! 
 ```{r}
