@@ -265,6 +265,11 @@ summary(lm2)
 #American Identity (control as rerference group)
 lm3 <- lm(identity ~ cond1, data = d3)
 
+#attitude (control as a referecen gruop)
+lm4a <- lm(attitude_self ~ cond1, data = d3)
+lm4b <- lm(attitude+asylum ~ cond1, data = d3)
+
+
 summary(lm3)
 
 ##aov(dv~X*Y,data=df)
