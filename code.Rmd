@@ -18,95 +18,139 @@ d <- read.csv(here("simulated_data.csv"))
 
 # Data Cleaning
 ```{r}
-#First step is to format the csv & delete entries that skipped to the end of the survey
+#First step is to format the csv & delete entries that skipped to the survey
+
 d1 <- d[-(1:2),]
 d1 <- d1 %>% 
   filter(Q1 == 1,
          Age != 1,
          US.resident == 1)
+
+#!!threshold of completion minutes 
+
+
 #Reverse code
 d2 <- d1 %>% 
   mutate_at(c("Attitude...self_3", "Attitude...asylum_3","Attitude...self_5", "Attitude...asylum_5"),
             recode, "1" = 3, "2" = 2, "3" = 1)
+
 d2 <- d2 %>% 
   mutate_at(c("BaseEmpathic.concern_2", "BaseEmpathic.concern_5", "BaseEmpathic.concern_6"),
             recode, "1" = 5, "2" = 4, "3" = 3, "4" = 2, "5" = 1)
-         
-#Force character values into numbers
-d2[,c(3:6, 11:15, 17:71)] <- d2[,c(3:6, 11:15, 17:71)] %>% 
-  mutate_if(is.character, as.numeric) #all questions should be changed to numeric except dates and gender text box 
+#activism petition: 7 = likely = 4, 2 = unlikely =2, 1 very unlikely = 1, 8 = very likely = 5, 4 = neither = 3
+
+d2 <- d2 %>% 
+  mutate_at(c("activism...petition_1", "activism...petition_2","activism...petition_3",
+                                 "activism...petition_4"),
+            recode, "1" = 1, "2" = 2, "4" = 3, "7" = 4, "8" = 5)
+
+#emotional response: 9 = extremely = 5, 8 = slightly = 2, 3 = somehwat = 3, 1 = not at all = 1, 4 = moderately = 4
+
+d2 <- d2 %>% 
+  mutate_at(c("Emp..Emot..Resp._1", "Emp..Emot..Resp._2","Emp..Emot..Resp._3",
+                                 "Emp..Emot..Resp._4", "Emp..Emot..Resp._5","Emp..Emot..Resp._6"),
+            recode, "1" = 1, "8" = 2, "3" = 3, "4" = 4, "9" = 5)
+#geo: 1 = 1, 2 = south = 3, 6 = alska = 6, 3 = west = 4, 4 = northcentral = 2 5 = 5 7 =7
+d2 <- d2 %>% 
+  mutate_at(("Region"),
+            recode, "1" = 1, "4" = 2, "2" = 3, "3" =4, "5" = 5, "6" = 6, "7" = 7)
+
+#gender: 2 = 2, 4 = transmen = 3, 6 = nonconforming = 5, 8 = prefer = 7, 7 = other = 6, 5 = transwoman = 4, 1= 1
+d2 <- d2 %>% 
+  mutate_at(("Gender"),
+            recode, "1" = 1, "2" = 2, "4" = 3, "5" = 4, "6" = 5, "7" = 6, "8" = 7)
+
+# political" 5 = 4, 2 = 2, 10 = 5, 1 = 1, 3 = 3
+d2 <- d2 %>% 
+  mutate_at(("Political"),
+            recode, "1" = 1, "2" = 2, "3" = 3, "5" = 4, "10" = 5)
+
+# identity: 3 = 3, 7 = 7, 2 = 2, 1 = 1, 4 = 4, 5 = 5, 6 = 6
+
+
+#Recode numeric to create new variables
+d2[, 3:6] <- d2[, 3:6] %>% mutate_if(is.character, as.numeric)
+d2[,11:15] <- d2[,11:15] %>% mutate_if(is.character, as.numeric)
+d2[,17:99] <- d2[,17:99] %>% mutate_if(is.character, as.numeric)
 sapply(d2,class)
-#Calculate response time cut-off threshold
+
 #rename and transform response time variable
 d2 <- d2 %>%
   rename(stim_time = Duration..in.seconds.)
-  #mutate(log_time = log(stim_time)) #log transformations of fake data made odd data
+
+d2 <- d2 %>%
+  mutate(log_time = log(stim_time))
+  
+  #log transformations of fake data made odd data
+
 #get mean, sd, and 2 sd outlier threshold for response times
-time_m <- mean(d2$stim_time) #with real data, d2$log_time
-time_sd <- sd(d2$stim_time) #with real data, d2$log_time
+time_m <- mean(d2$log_time) #with real data, d2$log_time
+time_sd <- sd(d2$log_time) #with real data, d2$log_time
 out.u <- time_m + 2*time_sd 
 out.l <- time_m - 2*time_sd
 #remove outlier response times
-d2_outlier <- d2 %>%
-  filter(-stim_time<out.u) %>%
-  filter(-stim_time>out.l)
+d2 <- d2 %>%
+  filter(log_time > out.l)
+
 # Basic Empathic Concern (BEconcern)
-d3 <- d2_outlier
+d3 <- d2
 which(colnames(d3) == "BaseEmpathic.concern_1")
 alpha(d3[, 27:33])
 d3 <- d3%>% 
   mutate(
   BEconcern = rowMeans(select(., c("BaseEmpathic.concern_1", "BaseEmpathic.concern_2","BaseEmpathic.concern_3",
                                  "BaseEmpathic.concern_5", "BaseEmpathic.concern_6", "BaseEmpathic.concern_7"))))
-# American Identity (identity)
+
+# American Identity
 which(colnames(d3) == "Identif..as.American_1")
 alpha(d3[, 34:37])
 d3 <- d3%>% 
   mutate(
   identity = rowMeans(select(., c("Identif..as.American_1", "Identif..as.American_2","Identif..as.American_3",
                                  "Identif..as.American_4"))))
-#Petition Willingess (petition)
+
+#Petition Willingess 
 which(colnames(d3) == "activism...petition_1")
-alpha(d3[, 38:41])
+alpha(d3[, 66:69])
 d3 <- d3%>% 
   mutate(
   petition = rowMeans(select(., c("activism...petition_1", "activism...petition_2","activism...petition_3",
                                  "activism...petition_4"))))
-# Activism Donation (donation)
+#!!Activism Donation
 which(colnames(d3) == "activism...donation_1")
-alpha(d3[, 42:45])
+alpha(d3[, 70:73])
 d3 <- d3%>% 
   mutate(
   donation = rowMeans(select(., c("activism...donation_1", "activism...donation_2","activism...donation_3",
                                  "activism...donation_4"))))
-# Donation Value  (donation_value)
-d3 <- d3 %>%
-  rename(donation_value = donations.amout) %>%
-  mutate(donation_value = log(donation_value)) # adjust for wide range of possible donation values
-#Empathy check: emotional response questionnaire (ERQ)
+
+#Empathy check: emotional response = ER
 which(colnames(d3) == "Emp..Emot..Resp._1")
-alpha(d3[, 47:52])
+alpha(d3[, 75:80])
 d3 <- d3%>% 
   mutate(
   ERQ = rowMeans(select(., c("Emp..Emot..Resp._1", "Emp..Emot..Resp._2","Emp..Emot..Resp._3",
                                  "Emp..Emot..Resp._4", "Emp..Emot..Resp._5", "Emp..Emot..Resp._6"))))
-#Recat check: Attitude/Intergroup_Bias Self (attitude_self)
+
+#Attitude/Intergroup_Bias Self = attitude_self
 which(colnames(d3) == "Attitude...self_1")
-alpha(d3[, 54:59])
+alpha(d3[, 82:87])
 d3 <- d3%>% 
   mutate(
   attitude_self = rowMeans(select(., c("Attitude...self_1", "Attitude...self_2","Attitude...self_3",
                                  "Attitude...self_4", "Attitude...self_5", "Attitude...self_6"))))
-#Empathy check: Attitude Asylum (attitude_asylum)
+#Attitude/Intergroup_Bias asylum = attitude_asylum
 which(colnames(d3) == "Attitude...asylum_1")
-alpha(d3[, 60:65])
+alpha(d3[, 88:93])
 d3 <- d3%>% 
   mutate(
   attitude_asylum = rowMeans(select(., c("Attitude...asylum_1", "Attitude...asylum_2","Attitude...asylum_3",
                                  "Attitude...asylum_4", "Attitude...asylum_5", "Attitude...asylum_6"))))
+
 #Recat check: Intergroup bias (bias)
 d3 <- d3 %>%
   mutate(bias = attitude_asylum - attitude_self) # negative values indicates bias to self; positive indicates bias to asylum
+
 #Demographics - Control Variable
 #Keep original: Age, gender, ethnicity, education, employment, region
 #Dummy code: 
@@ -131,10 +175,27 @@ d3 <- d3 %>%
     sign_life_yes = if_else(previous.activism_4 == 1, 1, 0),
     sign_life_no = if_else(previous.activism_4 == 2, 1, 0)
   )
-# OPTIONAL VARIABLE DATAFRAME
-d4 <- d3 %>%
-  select(Condition, Q_TotalDuration, Age, US.resident, Region, Gender, Education, Employment, stim_time, donation_value, Recat..IOS.circles, c(72:92))
+
+d3 %>%
+  group_by(Condition) %>% 
+  summarise(mean=mean(petition), sd = sd(petition), 
+            max = max(petition), min = min(petition))
+d3 %>%
+  group_by(Condition) %>% 
+  summarise(mean=mean(donation), sd = sd(donation), 
+            max = max(donation), min = min(donation))
+
+boxplot(d3$petition ~ d3$Condition,
+        data=d3,
+        ylab="activism willingness - petition", 
+        xlab = "Condition")
+boxplot(d3$donation ~ d3$Condition,
+        data=d3,
+        ylab="activism willingness - donation", 
+        xlab = "Condition")
+
 ```
+
 # T-test
 1. Each Condition * Control
 2. Recat + Empathy * Empathy
@@ -194,98 +255,86 @@ t.test(donat_emp_only, donat_ID_only, alternative = c("greater"), mu=0, paired=F
 t.test(donat_ID_and_Em, donat_ID_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
 t.test(donat_ID_and_Em, donat_emp_only, alternative = c("greater"), mu=0, paired=FALSE, var.equal = FALSE, conf.level = 0.95)
 ```
-# ANOVA: Compare Group Results
+# Regression
 1. Post test dependent variables
 2. Past activism behavior
 3. Manipulation check scores
 4. Baseline empathic concern
+# Main effect using regression
+#rercode three columns control as the reference group
+
 ```{r}
-#Option 1
-#Compare Group Results: Main effects: regressions - using petition and donation as DV
-Control_and_ID <- d3 %>%
-  filter(Condition == "1" | Condition == "2") %>%
-  mutate_at(c("Condition"),
-            recode, "1" = 0, "2" = 1)
-
-Control_and_empathy <- d3 %>%
-  filter(Condition == "1" | Condition == "3") %>%
-    mutate_at(c("Condition"),
-            recode, "1" = 0, "3" = 1)
-
-Control_and_Emp_ID <- d3 %>%
-  filter(Condition == "1" | Condition == "4") %>%
-  mutate_at(c("Condition"),
-          recode, "1" = 0, "4" = 1)
-
-EmpONLY_vs_EmpANDID <- d3 %>%
-  filter(Condition == "3" | Condition == "4") %>%
-  mutate_at(c("Condition"),
-          recode, "3" = 0, "4" = 1)
-
-IdONLY_vs_EmpANDID <- d3 %>%
-  filter(Condition == "3" | Condition == "4") %>%
-  mutate_at(c("Condition"),
-          recode, "2" = 0, "4" = 1)
-
-#control versus each condition (ID only, emp only, ID+empahty)
-reg_petition_1 <- lm(petition~Control_and_ID$Condition, data=Control_and_ID)
-
-summary(reg_petition_1)
-
-reg_petition_2 <- lm(petition~Control_and_empathy$Condition, data=Control_and_empathy)
-
-summary(reg_petition_2)
-
-reg_petition_3 <- lm(petition~Control_and_Emp_ID$Condition, data=Control_and_Emp_ID)
-
-summary(reg_petition_3)
-
-#ID+empathy versus ID only and Emp only
-reg_petition_4 <-lm(petition~EmpONLY_vs_EmpANDID$Condition, data=EmpONLY_vs_EmpANDID)
-
-summary(reg_petition_4)
-
-reg_petition_5 <-lm(petition~IdONLY_vs_EmpANDID$Condition, data=IdONLY_vs_EmpANDID)
-
-summary(reg_petition_5)
-
-#Option2: Main effects - using regression
-#rercode three columns each condition as the reference group
-
 d3 <- d3 %>% 
   mutate(
     cond1 = factor(Condition, c(1,2,3,4), labels=c('con', 'sup','em', 'supem')))
     
 #petition (control as reference group)
 lm1a <- lm(petition ~ cond1, data = d3)
-
 summary(lm1a)
-
 #donation (control as rerference group)
 lm1b <- lm(donation ~ cond1, data = d3)
-
 summary(lm1b)
-
 #Basic empathic conern (control as rerference group)
 lm2 <- lm(BEconcern ~ cond1, data = d3)
-
 summary(lm2)
-
 #American Identity (control as rerference group)
 lm3 <- lm(identity ~ cond1, data = d3)
-
+summary(lm3)
 #attitude (control as a referecen gruop)
 lm4a <- lm(attitude_self ~ cond1, data = d3)
-lm4b <- lm(attitude+asylum ~ cond1, data = d3)
+summary(lm4a)
+lm4b <- lm(attitude_asylum ~ cond1, data = d3)
+summary(lm4b)
+#Recat check: Intergroup bias (bias)
+lm5 <- lm(bias ~ cond1, data = d3)
+summary(lm5)
+lm6 <- lm(ERQ ~ cond1, data = d3)
+summary(lm6)
+#ANOVA for past activism behavior difference 
+#basic empathic concern
 
 
-summary(lm3)
+#Compare Group by Group results
+Control_and_ID <- d3 %>%
+  filter(Condition == "1" | Condition == "2") %>%
+  mutate_at(c("Condition"),
+            recode, "1" = 0, "2" = 1)
+Control_and_empathy <- d3 %>%
+  filter(Condition == "1" | Condition == "3") %>%
+    mutate_at(c("Condition"),
+            recode, "1" = 0, "3" = 1)
+Control_and_Emp_ID <- d3 %>%
+  filter(Condition == "1" | Condition == "4") %>%
+  mutate_at(c("Condition"),
+          recode, "1" = 0, "4" = 1)
+EmpONLY_vs_EmpANDID <- d3 %>%
+  filter(Condition == "3" | Condition == "4") %>%
+  mutate_at(c("Condition"),
+          recode, "3" = 0, "4" = 1)
+IdONLY_vs_EmpANDID <- d3 %>%
+  filter(Condition == "3" | Condition == "4") %>%
+  mutate_at(c("Condition"),
+          recode, "2" = 0, "4" = 1)
 
-##aov(dv~X*Y,data=df)
-##m1 <- lm(dv~X+Y,data=df)
-##m2 <- lm(dv~X*Y,data=df
+reg_petition_4 <-lm(petition~EmpONLY_vs_EmpANDID$Condition, data=EmpONLY_vs_EmpANDID)
+summary(reg_petition_4)
+reg_petition_5 <-lm(petition~IdONLY_vs_EmpANDID$Condition, data=IdONLY_vs_EmpANDID)
+summary(reg_petition_5)
+reg_petition_6 <-lm(donation~EmpONLY_vs_EmpANDID$Condition, data=EmpONLY_vs_EmpANDID)
+summary(reg_petition_6)
+reg_petition_7 <-lm(donation~IdONLY_vs_EmpANDID$Condition, data=IdONLY_vs_EmpANDID)
+summary(reg_petition_7)
+reg_petition_8 <-lm(bias~EmpONLY_vs_EmpANDID$Condition, data=EmpONLY_vs_EmpANDID)
+summary(reg_petition_8)
+reg_petition_9 <-lm(bias~IdONLY_vs_EmpANDID$Condition, data=IdONLY_vs_EmpANDID)
+summary(reg_petition_9)
+reg_petition_10 <-lm(ERQ ~ EmpONLY_vs_EmpANDID$Condition, data=EmpONLY_vs_EmpANDID)
+summary(reg_petition_10)
+reg_petition_11 <-lm(ERQ~IdONLY_vs_EmpANDID$Condition, data=IdONLY_vs_EmpANDID)
+summary(reg_petition_11)
 
 ```
+
 # Regressions: 
 1. check VIF for multicollinearity
 2. models
