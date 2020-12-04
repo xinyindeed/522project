@@ -349,49 +349,44 @@ summary(lm2h)
 lm2i<- lm(donations.amount ~ supemp, data=d4)
 summary(lm2i)
 
+# past activism related to dependents
+lm3b <- lm(sign_year_yes ~ petition, data=d4)
+summary(lm3b)
+lm3c <- lm(sign_year_yes ~ donation, data=d4)
+summary(lm3c)
+lm3d <- lm(donate_year_yes ~ petition, data=d4)
+summary(lm3d)
+lm3e <- lm(donate_year_yes ~ donation, data=d4)
+summary(lm3e)
+
+# political affiliation related to dependents
+lm4a <- lm(petition ~ democrat, data=d4)
+summary(lm4a)
+lm4c <- lm(donation ~ democrat, data=d4)
+summary(lm4c)
+lm4b <- lm(petition ~ republican, data=d4)
+summary(lm4b)
+lm4d <- lm(donation ~ republican, data=d4)
+summary(lm4d)
+lm4e <- lm(petition ~ independent, data=d4)
+summary(lm4e)
+lm4f <- lm(donation ~ independent, data=d4)
+summary(lm4f)
+
+d4 %>% 
+  group_by(Condition, Political) %>% 
+  count()
+# chi^2 between conditions on political affiliation
+tbl = table(d3$Condition, d3$Political)
+tbl
+chisq.test(tbl)
+
+#!! region control variable? 
+#!! education level?
+#!! donation and employment? 
+
 ```
 
-# Regression Plots
-1. plot(modelname) for Residuals vs. fitted values/Q-Q plots/Scale Location plots/Cook’s distance plots
-```{r}
-# condition 1
-plot(reg_1_p_emp)
-plot(reg_1_p_id)
-plot(reg_1_p)
-plot(reg_1_d_emp)
-plot(reg_1_d_id)
-plot(reg_1_d)
-```
-
-```{r}
-# condition 2
-plot(reg_2_p_emp)
-plot(reg_2_p_id)
-plot(reg_2_p)
-plot(reg_2_d_emp)
-plot(reg_2_d_id)
-plot(reg_2_d)
-```
-
-```{r}
-# condition 3
-plot(reg_3_p_emp)
-plot(reg_3_p_id)
-plot(reg_3_p)
-plot(reg_3_d_emp)
-plot(reg_3_d_id)
-plot(reg_3_d)
-```
-
-```{r}
-# condition 4
-plot(reg_4_p_emp)
-plot(reg_4_p_id)
-plot(reg_4_p)
-plot(reg_4_d_emp)
-plot(reg_4_d_id)
-plot(reg_4_d)
-```
 # Code for GGplots!! 
 ```{r}
 ```
