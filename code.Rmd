@@ -169,6 +169,24 @@ boxplot(d3$donation ~ d3$Condition,
         ylab="activism willingness - donation", 
         xlab = "Condition")
         
+#test if condition 4 randomization #1 and #2 have any difference between each other 
+d4 <- d3 %>% 
+  filter(Condition == 4)
+d4 <- d4 %>%
+  rename(EPfirst = FL_39_DO_Intervention4.YesEmpathy.YesRecat.EmpathyFirst)
+d4 <- d4 %>% 
+  mutate(
+    EPfirst = replace_na(EPfirst, 0))
+
+summary(lm(petition ~ EPfirst, data = d4))
+summary(lm(donation ~ EPfirst, data = d4))
+summary(lm(BEconcern~ EPfirst, data = d4))
+summary(lm(identity~ EPfirst, data = d4))
+summary(lm(attitude_self~ EPfirst, data = d4))
+summary(lm(attitude_asylum~ EPfirst, data = d4))
+summary(lm(bias~ EPfirst, data = d4))
+summary(lm(ERQ~ EPfirst, data = d4))
+        
 ```
 
 # T-test
