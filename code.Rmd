@@ -19,33 +19,25 @@ d <- read.csv(here("simulated_data.csv"))
 # Data Cleaning
 ```{r}
 #First step is to format the csv & delete entries that skipped to the survey
-
 d1 <- d[-(1:2),]
 d1 <- d1 %>% 
   filter(Q1 == 1,
          Age != 1,
          US.resident == 1)
 
-#!!threshold of completion minutes 
-
-
-#Reverse code
+#Reverse code and recode
 d2 <- d1 %>% 
   mutate_at(c("Attitude...self_3", "Attitude...asylum_3","Attitude...self_5", "Attitude...asylum_5"),
             recode, "1" = 3, "2" = 2, "3" = 1)
-
 d2 <- d2 %>% 
   mutate_at(c("BaseEmpathic.concern_2", "BaseEmpathic.concern_5", "BaseEmpathic.concern_6"),
             recode, "1" = 5, "2" = 4, "3" = 3, "4" = 2, "5" = 1)
 #activism petition: 7 = likely = 4, 2 = unlikely =2, 1 very unlikely = 1, 8 = very likely = 5, 4 = neither = 3
-
 d2 <- d2 %>% 
   mutate_at(c("activism...petition_1", "activism...petition_2","activism...petition_3",
                                  "activism...petition_4"),
             recode, "1" = 1, "2" = 2, "4" = 3, "7" = 4, "8" = 5)
-
 #emotional response: 9 = extremely = 5, 8 = slightly = 2, 3 = somehwat = 3, 1 = not at all = 1, 4 = moderately = 4
-
 d2 <- d2 %>% 
   mutate_at(c("Emp..Emot..Resp._1", "Emp..Emot..Resp._2","Emp..Emot..Resp._3",
                                  "Emp..Emot..Resp._4", "Emp..Emot..Resp._5","Emp..Emot..Resp._6"),
@@ -54,35 +46,27 @@ d2 <- d2 %>%
 d2 <- d2 %>% 
   mutate_at(("Region"),
             recode, "1" = 1, "4" = 2, "2" = 3, "3" =4, "5" = 5, "6" = 6, "7" = 7)
-
 #gender: 2 = 2, 4 = transmen = 3, 6 = nonconforming = 5, 8 = prefer = 7, 7 = other = 6, 5 = transwoman = 4, 1= 1
 d2 <- d2 %>% 
   mutate_at(("Gender"),
             recode, "1" = 1, "2" = 2, "4" = 3, "5" = 4, "6" = 5, "7" = 6, "8" = 7)
-
 # political" 5 = 4, 2 = 2, 10 = 5, 1 = 1, 3 = 3
 d2 <- d2 %>% 
   mutate_at(("Political"),
             recode, "1" = 1, "2" = 2, "3" = 3, "5" = 4, "10" = 5)
-
 # identity: 3 = 3, 7 = 7, 2 = 2, 1 = 1, 4 = 4, 5 = 5, 6 = 6
-
-
 #Recode numeric to create new variables
 d2[, 3:6] <- d2[, 3:6] %>% mutate_if(is.character, as.numeric)
 d2[,11:15] <- d2[,11:15] %>% mutate_if(is.character, as.numeric)
-d2[,17:99] <- d2[,17:99] %>% mutate_if(is.character, as.numeric)
+d2[,17:134] <- d2[,17:134] %>% mutate_if(is.character, as.numeric)
 sapply(d2,class)
-
 #rename and transform response time variable
 d2 <- d2 %>%
   rename(stim_time = Duration..in.seconds.)
-
 d2 <- d2 %>%
   mutate(log_time = log(stim_time))
   
   #log transformations of fake data made odd data
-
 #get mean, sd, and 2 sd outlier threshold for response times
 time_m <- mean(d2$log_time) #with real data, d2$log_time
 time_sd <- sd(d2$log_time) #with real data, d2$log_time
@@ -91,7 +75,6 @@ out.l <- time_m - 2*time_sd
 #remove outlier response times
 d2 <- d2 %>%
   filter(log_time > out.l)
-
 # Basic Empathic Concern (BEconcern)
 d3 <- d2
 which(colnames(d3) == "BaseEmpathic.concern_1")
@@ -100,57 +83,51 @@ d3 <- d3%>%
   mutate(
   BEconcern = rowMeans(select(., c("BaseEmpathic.concern_1", "BaseEmpathic.concern_2","BaseEmpathic.concern_3",
                                  "BaseEmpathic.concern_5", "BaseEmpathic.concern_6", "BaseEmpathic.concern_7"))))
-
 # American Identity
 which(colnames(d3) == "Identif..as.American_1")
-alpha(d3[, 34:37])
+alpha(d3[, 41:44])
 d3 <- d3%>% 
   mutate(
   identity = rowMeans(select(., c("Identif..as.American_1", "Identif..as.American_2","Identif..as.American_3",
                                  "Identif..as.American_4"))))
-
 #Petition Willingess 
 which(colnames(d3) == "activism...petition_1")
-alpha(d3[, 66:69])
+alpha(d3[, 77:80])
 d3 <- d3%>% 
   mutate(
   petition = rowMeans(select(., c("activism...petition_1", "activism...petition_2","activism...petition_3",
                                  "activism...petition_4"))))
 #!!Activism Donation
 which(colnames(d3) == "activism...donation_1")
-alpha(d3[, 70:73])
+alpha(d3[, 81:84])
 d3 <- d3%>% 
   mutate(
   donation = rowMeans(select(., c("activism...donation_1", "activism...donation_2","activism...donation_3",
                                  "activism...donation_4"))))
-
-#Empathy check: emotional response = ER
+#Empathy check: emotional response = ERQ
 which(colnames(d3) == "Emp..Emot..Resp._1")
-alpha(d3[, 75:80])
+alpha(d3[, 86:91])
 d3 <- d3%>% 
   mutate(
   ERQ = rowMeans(select(., c("Emp..Emot..Resp._1", "Emp..Emot..Resp._2","Emp..Emot..Resp._3",
                                  "Emp..Emot..Resp._4", "Emp..Emot..Resp._5", "Emp..Emot..Resp._6"))))
-
 #Attitude/Intergroup_Bias Self = attitude_self
 which(colnames(d3) == "Attitude...self_1")
-alpha(d3[, 82:87])
+alpha(d3[, 99:104])
 d3 <- d3%>% 
   mutate(
   attitude_self = rowMeans(select(., c("Attitude...self_1", "Attitude...self_2","Attitude...self_3",
                                  "Attitude...self_4", "Attitude...self_5", "Attitude...self_6"))))
 #Attitude/Intergroup_Bias asylum = attitude_asylum
 which(colnames(d3) == "Attitude...asylum_1")
-alpha(d3[, 88:93])
+alpha(d3[, 111:116])
 d3 <- d3%>% 
   mutate(
   attitude_asylum = rowMeans(select(., c("Attitude...asylum_1", "Attitude...asylum_2","Attitude...asylum_3",
                                  "Attitude...asylum_4", "Attitude...asylum_5", "Attitude...asylum_6"))))
-
 #Recat check: Intergroup bias (bias)
 d3 <- d3 %>%
   mutate(bias = attitude_asylum - attitude_self) # negative values indicates bias to self; positive indicates bias to asylum
-
 #Demographics - Control Variable
 #Keep original: Age, gender, ethnicity, education, employment, region
 #Dummy code: 
@@ -175,7 +152,6 @@ d3 <- d3 %>%
     sign_life_yes = if_else(previous.activism_4 == 1, 1, 0),
     sign_life_no = if_else(previous.activism_4 == 2, 1, 0)
   )
-
 d3 %>%
   group_by(Condition) %>% 
   summarise(mean=mean(petition), sd = sd(petition), 
@@ -184,7 +160,6 @@ d3 %>%
   group_by(Condition) %>% 
   summarise(mean=mean(donation), sd = sd(donation), 
             max = max(donation), min = min(donation))
-
 boxplot(d3$petition ~ d3$Condition,
         data=d3,
         ylab="activism willingness - petition", 
@@ -193,7 +168,7 @@ boxplot(d3$donation ~ d3$Condition,
         data=d3,
         ylab="activism willingness - donation", 
         xlab = "Condition")
-
+        
 ```
 
 # T-test
