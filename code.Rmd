@@ -311,180 +311,44 @@ summary(reg_petition_11)
 ```
 
 # Regressions: 
-1. check VIF for multicollinearity
-2. models
+1. empathy model
+2. superordinate recategorization model
+3. interaction model
 
 
 ```{r}
 # Regressions
-# isolate conditions into dfs
-d3_1 <- d3 %>%
-  filter(Condition=="1")
-d3_2 <- d3 %>%
-  filter(Condition=="2")
-d3_3 <- d3 %>%
-  filter(Condition=="3")
-d3_4 <- d3 %>%
-  filter(Condition=="4")
-# model name format: regression // condition // predicting 'p'etition or 'd'onation // predictors
-# independent variables: ERQ, attitude_asylum, Recat..IOS.circles, bias
-# dependent variables: petition, donation
-# control variables: BEconcern democrat republican independent somethingelse dontknow donate_year_yes donate_year_no donate_life_yes donate_life_no sign_year_yes sign_year_no sign_life_yes sign_life_no
-  # removed independent, somethingelse, dontknow, and all "..._no" dummy variables do to aliased coefficients
-# condition 1: control
-# model: dv~iv
-reg_1_p_emp <- lm(petition ~ ERQ + attitude_asylum, data = d3_1)
-vif(reg_1_p_emp) #remove predictors with large VIFs
-summary(reg_1_p_emp)
-reg_1_p_id <- lm(petition ~ Recat..IOS.circles + bias, data = d3_1)
-vif(reg_1_p_id) 
-summary(reg_1_p_id)
-reg_1_p <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_1)
-vif(reg_1_p)
-summary(reg_1_p)
-reg_1_d_emp <- lm(donation ~ ERQ + attitude_asylum, data = d3_1)
-vif(reg_1_d_emp)
-summary(reg_1_d_emp)
-reg_1_d_id <- lm(donation ~ Recat..IOS.circles + bias, data = d3_1)
-vif(reg_1_d_id)
-summary(reg_1_d_id)
-reg_1_d <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_1)
-vif(reg_1_d)
-summary(reg_1_d)
-#model: dv~iv+cv
-reg_1_p_emp_c <- lm(petition ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_1) 
-vif(reg_1_p_emp_c)
-summary(reg_1_p_emp_c)
-reg_1_p_id_c <- lm(petition ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_1)
-vif(reg_1_p_id_c)
-summary(reg_1_p_id_c)
-reg_1_p_c <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_1)
-vif(reg_1_p_c)
-summary(reg_1_p_c)
-reg_1_d_emp_c<- lm(donation ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_1)
-vif(reg_1_d_emp_c)
-summary(reg_1_d_emp_c)
-reg_1_d_id_c <- lm(donation ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_1)
-vif(reg_1_d_id_c)
-summary(reg_1_d_id_c)
-reg_1_d_c <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_1)
-vif(reg_1_d_c)
-summary(reg_1_d_c)
-# condition 2: ID only
-# model: dv~iv
-reg_2_p_emp <- lm(petition ~ ERQ + attitude_asylum , data = d3_2)
-vif(reg_2_p_emp)
-summary(reg_2_p_emp)
-reg_2_p_id <- lm(petition ~ Recat..IOS.circles + bias, data = d3_2)
-vif(reg_2_p_id)
-summary(reg_2_p_id)
-reg_2_p <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_2)
-vif(reg_2_p)
-summary(reg_2_p)
-reg_2_d_emp <- lm(donation ~ ERQ + attitude_asylum, data = d3_2)
-vif(reg_2_d_emp)
-summary(reg_2_d_emp)
-reg_2_d_id <- lm(donation ~ Recat..IOS.circles + bias, data = d3_2)
-vif(reg_2_d_id)
-summary(reg_2_d_id)
-reg_2_d <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_2)
-vif(reg_2_d)
-summary(reg_2_d)
-# model: dv~iv+cv
-reg_2_p_emp_c <- lm(petition ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_2)
-vif(reg_2_p_emp_c)
-summary(reg_2_p_emp_c)
-reg_2_p_id_c <- lm(petition ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_2)
-vif(reg_2_p_id_c)
-summary(reg_2_p_id_c)
-reg_2_p_c <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_2)
-vif(reg_2_p_c)
-summary(reg_2_p_c)
-reg_2_d_emp_c <- lm(donation ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_2)
-vif(reg_2_d_emp_c)
-summary(reg_2_d_emp_c)
-reg_2_d_id_c <- lm(donation ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_2)
-vif(reg_2_d_id_c)
-summary(reg_2_d_id_c)
-reg_2_d_c <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_2)
-vif(reg_2_d_c)
-summary(reg_2_d_c)
-# condition 3: empathy only
-reg_3_p_emp <- lm(petition ~ ERQ + attitude_asylum, data = d3_3)
-vif(reg_3_p_emp)
-summary(reg_3_p_emp)
-reg_3_p_id <- lm(petition ~ Recat..IOS.circles + bias, data = d3_3)
-vif(reg_3_p_id)
-summary(reg_3_p_id)
-reg_3_p <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_3)
-vif(reg_3_p)
-summary(reg_3_p)
-reg_3_d_emp <- lm(donation ~ ERQ + attitude_asylum, data = d3_3)
-vif(reg_3_d_emp)
-summary(reg_3_d_emp)
-reg_3_d_id <- lm(donation ~ Recat..IOS.circles + bias, data = d3_3)
-vif(reg_3_d_id)
-summary(reg_3_d_id)
-reg_3_d <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_3)
-vif(reg_3_d)
-summary(reg_3_d)
-# model: dv~iv+cv
-reg_3_p_emp_c <- lm(petition ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_3)
-vif(reg_3_p_emp_c)
-summary(reg_3_p_emp_c)
-reg_3_p_id_c <- lm(petition ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_3)
-vif(reg_3_p_id_c)
-summary(reg_3_p_id_c)
-reg_3_p_c <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_3)
-vif(reg_3_p_c)
-summary(reg_3_p_c)
-reg_3_d_emp_c <- lm(donation ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_3)
-vif(reg_3_d_emp_c)
-summary(reg_3_d_emp_c)
-reg_3_d_id_c <- lm(donation ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_3)
-vif(reg_3_d_id_c)
-summary(reg_3_d_id_c)
-reg_3_d_c <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_3)
-vif(reg_3_d_c)
-summary(reg_3_d_c)
-# condition 4: empathy + recat
-reg_4_p_emp <- lm(petition ~ ERQ + attitude_asylum, data = d3_4)
-vif(reg_4_p_emp)
-summary(reg_4_p_emp)
-reg_4_p_id <- lm(petition ~ Recat..IOS.circles + bias, data = d3_4)
-vif(reg_4_p_id)
-summary(reg_4_p_id)
-reg_4_p <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_4)
-vif(reg_4_p)
-summary(reg_4_p)
-reg_4_d_emp <- lm(donation ~ ERQ + attitude_asylum, data = d3_4)
-vif(reg_4_d_emp)
-summary(reg_4_d_emp)
-reg_4_d_id <- lm(donation ~ Recat..IOS.circles + bias, data = d3_4)
-vif(reg_4_d_id)
-summary(reg_4_d_id)
-reg_4_d <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias, data = d3_4)
-vif(reg_4_d)
-summary(reg_4_d)
-# model: dv~iv+cv
-reg_4_p_emp_c <- lm(petition ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_4)
-vif(reg_4_p_emp_c)
-summary(reg_4_p_emp_c)
-reg_4_p_id_c <- lm(petition ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_4)
-vif(reg_4_p_id_c)
-summary(reg_4_p_id_c)
-reg_4_p_c <- lm(petition ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_4)
-vif(reg_4_p_c)
-summary(reg_4_p_c)
-reg_4_d_emp_c <- lm(donation ~ ERQ + attitude_asylum + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_4)
-vif(reg_4_d_emp_c)
-summary(reg_4_d_emp_c)
-reg_4_d_id_c <- lm(donation ~ Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_4)
-vif(reg_4_d_id_c)
-summary(reg_4_d_id_c)
-reg_4_d_c <- lm(donation ~ ERQ + attitude_asylum + Recat..IOS.circles + bias + BEconcern + democrat + republican + donate_year_yes + donate_life_yes + sign_year_yes + sign_life_yes, data = d3_4)
-vif(reg_4_d_c)
-summary(reg_4_d_c)
+
+#dummies for identity and empathy
+d4<-d3
+d4$sup <- ifelse(d4$Condition=="2" | d4$Condition=="4",1,0)
+d4$emp <- ifelse(d4$Condition=="3" | d4$Condition=="4",1,0)
+d4$supemp <- (d4$sup*d4$emp)
+
+d4 <- d4 %>%
+  rename(donations.amount = donations.amout)
+
+# petition and donation dependent variables
+lm2a <- lm(petition ~ sup, data=d4)
+summary(lm2a)
+lm2b <- lm(donation ~ sup, data=d4)
+summary(lm2b)
+lm2c <- lm(petition ~ emp, data = d4)
+summary(lm2c)
+lm2d <- lm(donation ~ emp, data = d4)
+summary(lm2d)
+lm2e <- lm(petition ~ supemp, data=d4)
+summary(lm2e)
+lm2f <- lm(donation ~ supemp, data=d4)
+summary(lm2f)
+# donation amount variable
+lm2g <- lm(donations.amount ~ sup, data=d4)
+summary(lm2g)
+lm2h <- lm(donations.amount ~ emp, data=d4)
+summary(lm2h)
+lm2i<- lm(donations.amount ~ supemp, data=d4)
+summary(lm2i)
+
 ```
 
 # Regression Plots
