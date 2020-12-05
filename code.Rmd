@@ -399,6 +399,50 @@ tbl = table(d3$Condition, d3$Political)
 tbl
 chisq.test(tbl)
 
+tbl_age <- table(d3$Condition, d3$Age)
+chisq.test(tbl_age)
+
+tbl_region <- table(d3$Condition, d3$Region)
+chisq.test(tbl_region)
+
+tbl_gender <- table(d3$Condition, d3$Gender)
+chisq.test(tbl_gender)
+
+tbl_Ethnicity1 <- table(d3$Condition, d3$Ethnicity_1)
+chisq.test(tbl_Ethnicity1)
+tbl_Ethnicity10 <- table(d3$Condition, d3$Ethnicity_10)
+chisq.test(tbl_Ethnicity10)
+tbl_Ethnicity12 <- table(d3$Condition, d3$Ethnicity_12)
+chisq.test(tbl_Ethnicity12)
+tbl_Ethnicity13 <- table(d3$Condition, d3$Ethnicity_13)
+chisq.test(tbl_Ethnicity13)
+tbl_Ethnicity4 <- table(d3$Condition, d3$Ethnicity_4)
+chisq.test(tbl_Ethnicity4)
+tbl_Ethnicity6 <- table(d3$Condition, d3$Ethnicity_6)
+chisq.test(tbl_Ethnicity6)
+tbl_Ethnicity7 <- table(d3$Condition, d3$Ethnicity_7)
+chisq.test(tbl_Ethnicity7)
+
+tbl_education <- table(d3$Condition, d3$Education)
+chisq.test(tbl_education)
+
+tbl_employment <- table(d3$Condition, d3$Employment)
+chisq.test(tbl_employment)
+
+
+tbl_prev_act1 <- table(d3$Condition, d3$previous.activism_1)
+chisq.test(tbl_prev_act1)
+
+tbl_prev_act2 <- table(d3$Condition, d3$previous.activism_2)
+chisq.test(tbl_prev_act2)
+
+tbl_prev_act3 <- table(d3$Condition, d3$previous.activism_3)
+chisq.test(tbl_prev_act3)
+
+tbl_prev_act4 <- table(d3$Condition, d3$previous.activism_4)
+chisq.test(tbl_prev_act4)
+
+
 #!! region control variable? 
 #!! education level?
 #!! donation and employment? 
